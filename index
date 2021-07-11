@@ -84,7 +84,7 @@ class Docker {
       cmdOpts.push('-l')
     }
 
-    execSysCmd('docker', cmdOpts)
+    return execSysCmd('docker', cmdOpts).join('\n')
   }
 
   killAll() {
@@ -93,7 +93,9 @@ class Docker {
   }
 
   delAll() {
-    this.killAll()
+    try {
+      this.killAll()
+    } catch {}
 
     const lines = execSysCmd('docker', ['ps', '-a']).slice(1)
     const ids = lines.map(line => line.split(/\s+/)[0])
