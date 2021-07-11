@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+
+const assert = require('assert')
+const exec = require('child_process').execFileSync
+
+const buildArgs = (value, prev) => prev.concat(value)
+
+const execSysCmd = (cmd, args) => exec(cmd, args).toString().trim().split('\n')
+
+class Docker {
+  help() {
+    console.log(
+      `
+        docker run <image(name:tag|name)> <command> [-c "<args>"]: create new container from an image and run it
+          options:
+            -d: detach(ctrl+p&&ctrl+q)
+            -ti: interactive terminal
+            --rm: delete container on stop
+            --name <name>: docker name
+            -e <name>:<value>: addd env var
+            --net <name>: associate a network
+            --memory <number>: memory limit
+            --cpu-quota <number>: CPU limit
+            -v "<absoluteFilePath>:<ContainerFilePath>": share a file between host and container
+            -v "<ContainerFilePath>": share a file between containers (ephemeral)
+            --volumes-from: use shared file
+            --link access the env of other containers
+
+        docker commit <id|name> <name:tag>: create a new container from an image
+
+        docker images: list existent images
+
+        docker pull: getting image
+
+        docker rmi: remove image
+
+        docker push: push image
+        
+        docker ps <-a: all|-l: last|-q: running>: list containers (running/stopped)
+
+        docker attach <name|id>: attach detached container
+
+        docker exec -ti <id or name> <command>: like run but execute a new process on running container
+
+        docker logs <id or name>: get more info about the last execution of the container
+
+        docker kill <id or name>: stop a container
+
+        docker start <id or name>: start an existing container
+    
+        docker rm <id or name>: remove a container
+
+        docker port: exposed ports
+
+        docker network create <name>: create new virtual network
+
+        docker network connect <network1> <network2>: connect virtual networks to let containers communicate
+
+        docker search <name>: search image from docker registry (see hub.docker.com)
+
+        docker tag <name|id> <name>: rename image
+
+        -----------------------------------------------
+
+        ps <all|last>: formatted ps
+
+        killAll
+
+        delAll
+      `
+    )
+  }
+
+  ps(option) {
+    const format =
+      '\nID\t{{.ID}}\nIMAGE\t{{.Image}}\nCOMMAND\t{{.Command}}\nCREATED\t{{.RunningFor}}\nSTATUS\t{{.Status}}\nPORTS\t{{.Ports}}\nNAMES\t{{.Names}}\n'
+    const cmdOpts = ['ps', '--format', format]
+
+    if (option === 'all') {
+      cmdOpts.push('-a')
+    }
+
+    if (option === 'last') {
+      cmdOpts.push('-l')
+    }
+
+    execSysCmd('docker', cmdOpts)
+  }
+
+  killAll() {
+    const lines = execSysCmd('docker', ['ps', '-q'])
+    lines.forEach(id => execSysCmd('docker', ['kill', id]))
+  }
+
+  delAll() {
+    this.killAll()
+
+    const lines = execSysCmd('docker', ['ps', '-a']).slice(1)
+    const ids = lines.map(line => line.split(/\s+/)[0])
+    ids.forEach(id => execSysCmd('docker', ['rm', id]))
+  }
+
+  commit(id, tag) {
+    execSysCmd('docker', ['commit', id, tag])
+  }
+}
+
+async function main() {
+  const program = new (require('commander').Command)()
+
+  const { method, args } = program
+    .requiredOption('-m, --method <string>', 'method')
+    .option('-a, --args <value>', 'args', buildArgs, [])
+    .parse(process.argv)
+    .opts()
+
+  const m = new Docker()[method]
+  if (m === undefined) {
+    throw new Error(`The method ${method} doesn't exist`)
+  }
+
+  console.log(m(...args) ?? true)
+}
+
+main().catch(error => {
+  console.error(error)
+  process.exit(1)
+})
