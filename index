@@ -67,6 +67,8 @@ class Docker {
         killAll
 
         delAll
+
+        delIAll
       `
     )
   }
@@ -100,6 +102,16 @@ class Docker {
     const lines = execSysCmd('docker', ['ps', '-a']).slice(1)
     const ids = lines.map(line => line.split(/\s+/)[0])
     ids.forEach(id => execSysCmd('docker', ['rm', id]))
+  }
+
+  delIAll() {
+    try {
+      this.delAll()
+    } catch {}
+
+    const lines = execSysCmd('docker', ['images']).slice(1)
+    const ids = lines.map(line => line.split(/\s+/)[2])
+    ids.forEach(id => execSysCmd('docker', ['rmi', id]))
   }
 
   commit(id, tag) {
