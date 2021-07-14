@@ -50,7 +50,7 @@ class Docker {
     
         docker rm <id or name>: remove a container
 
-        docker port: exposed ports
+        docker port <dockerName>: exposed ports
 
         docker network create <name>: create new virtual network
 
